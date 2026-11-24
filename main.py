@@ -15,30 +15,36 @@ LINE = (
 )
 
 
+def validate_entry(text: str) -> str | None:
+    """Return an error message when the entry breaks a gate, else None.
+
+    Mirrors the sealed scorer: 1-200 UTF-8 characters, not only whitespace,
+    a single line, no tab, no control characters, and sentence-ending
+    punctuation. A joke that trips any of these is not an entry at all.
+    """
+    if not text or text.strip() == "":
+        return "entry is empty or only whitespace"
+    if len(text) > 200:
+        return f"entry is {len(text)} characters, over the 200 limit"
+    if "\n" in text or "\r" in text:
+        return "entry must be a single line"
+    if "\t" in text:
+        return "entry must not contain a tab"
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return "entry must not contain control characters"
+    if text != text.strip():
+        return "entry has leading or trailing whitespace"
+    if text[-1] not in ".!?":
+        return "entry must end with sentence-ending punctuation"
+    return None
+
+
 def main() -> int:
     text = LINE
 
-    # Gate checks, mirroring the sealed scorer: 1-200 UTF-8 chars,
-    # not only whitespace, single line, no tab.
-    if not text or text.strip() == "":
-        print("entry is empty or only whitespace", file=sys.stderr)
-        return 1
-    if len(text) > 200:
-        print(f"entry is {len(text)} characters, over the 200 limit",
-              file=sys.stderr)
-        return 1
-    if "\n" in text or "\r" in text:
-        print("entry must be a single line", file=sys.stderr)
-        return 1
-    if "\t" in text:
-        print("entry must not contain a tab", file=sys.stderr)
-        return 1
-    if text != text.strip():
-        print("entry has leading or trailing whitespace", file=sys.stderr)
-        return 1
-    if text[-1] not in ".!?":
-        print("entry must end with sentence-ending punctuation",
-              file=sys.stderr)
+    error = validate_entry(text)
+    if error is not None:
+        print(error, file=sys.stderr)
         return 1
 
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
